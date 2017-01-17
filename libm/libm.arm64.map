@@ -216,7 +216,7 @@ LIBC {
     powl; # introduced=21
     remainder;
     remainderf;
-    remainderl; # introduced=21
+    #remainderl; # introduced=21
     remquo;
     remquof;
     remquol; # introduced=21
