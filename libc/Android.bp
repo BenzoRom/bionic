@@ -568,6 +568,7 @@ cc_library_static {
             ],
             cortex_a7: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -575,6 +576,7 @@ cc_library_static {
             },
             cortex_a53: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -582,6 +584,7 @@ cc_library_static {
             },
             cortex_a53_a57: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -590,6 +593,7 @@ cc_library_static {
             cortex_a8: {
                 exclude_srcs: [
                     "upstream-openbsd/lib/libc/string/memmove.c",
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
                 ],
@@ -603,6 +607,7 @@ cc_library_static {
             },
             cortex_a15: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -610,6 +615,7 @@ cc_library_static {
             },
             denver: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -617,6 +623,7 @@ cc_library_static {
             },
             krait: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -624,6 +631,7 @@ cc_library_static {
             },
             kryo: {
                 exclude_srcs: [
+                    "upstream-openbsd/lib/libc/string/memchr.c",
                     "upstream-openbsd/lib/libc/string/memmove.c",
                     "upstream-openbsd/lib/libc/string/stpcpy.c",
                     "upstream-openbsd/lib/libc/string/strcat.c",
@@ -824,6 +832,7 @@ cc_library_static {
                     "arch-arm/cortex-a7/bionic/__strcat_chk.S",
                     "arch-arm/cortex-a7/bionic/__strcpy_chk.S",
 
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
                     "arch-arm/cortex-a15/bionic/strcat.S",
                     "arch-arm/cortex-a15/bionic/strcmp.S",
@@ -850,6 +859,7 @@ cc_library_static {
 
                     "arch-arm/cortex-a7/bionic/memset.S",
 
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
                     "arch-arm/cortex-a15/bionic/strcat.S",
                     "arch-arm/cortex-a15/bionic/strcmp.S",
@@ -870,6 +880,7 @@ cc_library_static {
             },
             cortex_a53_a57: {
                 srcs: [
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/memcpy.S",
                     "arch-arm/cortex-a15/bionic/memset.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
@@ -894,6 +905,7 @@ cc_library_static {
             },
             cortex_a8: {
                 srcs: [
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/memcpy.S",
                     "arch-arm/cortex-a15/bionic/memset.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
@@ -942,6 +954,7 @@ cc_library_static {
             },
             cortex_a15: {
                 srcs: [
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/memcpy.S",
                     "arch-arm/cortex-a15/bionic/memset.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
@@ -972,7 +985,8 @@ cc_library_static {
                     "arch-arm/denver/bionic/__strcat_chk.S",
                     "arch-arm/denver/bionic/__strcpy_chk.S",
 
-                    // Use cortex-a15 versions of strcat/strcpy/strlen.
+                    // Use cortex-a15 versions of memchr/strcat/strcpy/strlen.
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
                     "arch-arm/cortex-a15/bionic/strcat.S",
                     "arch-arm/cortex-a15/bionic/strcmp.S",
@@ -997,7 +1011,8 @@ cc_library_static {
                     "arch-arm/krait/bionic/__strcat_chk.S",
                     "arch-arm/krait/bionic/__strcpy_chk.S",
 
-                    // Use cortex-a15 versions of strcat/strcpy/strlen.
+                    // Use cortex-a15 versions of memchr/strcat/strcpy/strlen.
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
                     "arch-arm/cortex-a15/bionic/strcat.S",
                     "arch-arm/cortex-a15/bionic/strcpy.S",
@@ -1023,7 +1038,8 @@ cc_library_static {
                     "arch-arm/krait/bionic/__strcat_chk.S",
                     "arch-arm/krait/bionic/__strcpy_chk.S",
 
-                    // Use cortex-a15 versions of strcat/strcpy/strlen.
+                    // Use cortex-a15 versions of memchr/strcat/strcpy/strlen.
+                    "arch-arm/cortex-a15/bionic/memchr.S",
                     "arch-arm/cortex-a15/bionic/stpcpy.S",
                     "arch-arm/cortex-a15/bionic/strcat.S",
                     "arch-arm/cortex-a15/bionic/strcpy.S",
