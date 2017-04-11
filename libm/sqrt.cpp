@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,28 @@
  * limitations under the License.
  */
 
-#include <private/bionic_asm.h>
+#include <math.h>
 
-ENTRY(sqrt)
-  fsqrt d0, d0
-  ret
-END(sqrt)
+#include "fpmath.h"
 
-ENTRY(sqrtf)
-  fsqrt s0, s0
-  ret
-END(sqrtf)
+#if 1
+
+double sqrt(double x) {
+  return __builtin_sqrt(x);
+}
+
+float sqrtf(float x) {
+  return __builtin_sqrtf(x);
+}
+
+long double sqrtl(long double x) {
+  return __builtin_sqrtl(x);
+}
+
+#else
+
+#include "upstream-freebsd/lib/msun/src/e_sqrt.c"
+#include "upstream-freebsd/lib/msun/src/e_sqrtf.c"
+#include "upstream-freebsd/lib/msun/src/e_sqrtl.c"
+
+#endif

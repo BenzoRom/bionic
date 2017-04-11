@@ -61,8 +61,6 @@ cc_library {
         "upstream-freebsd/lib/msun/src/e_scalbf.c",
         "upstream-freebsd/lib/msun/src/e_sinh.c",
         "upstream-freebsd/lib/msun/src/e_sinhf.c",
-        "upstream-freebsd/lib/msun/src/e_sqrt.c",
-        "upstream-freebsd/lib/msun/src/e_sqrtf.c",
         "upstream-freebsd/lib/msun/src/imprecise.c",
         "upstream-freebsd/lib/msun/src/k_cos.c",
         "upstream-freebsd/lib/msun/src/k_cosf.c",
@@ -215,6 +213,7 @@ cc_library {
 
         // Home-grown stuff.
         "fabs.cpp",
+        "sqrt.cpp",
     ],
 
     multilib: {
@@ -232,8 +231,6 @@ cc_library {
                 "upstream-freebsd/lib/msun/src/e_fmodl.c",
                 "upstream-freebsd/lib/msun/src/e_hypotl.c",
                 "upstream-freebsd/lib/msun/src/e_lgammal.c",
-                "upstream-freebsd/lib/msun/src/e_remainderl.c",
-                "upstream-freebsd/lib/msun/src/e_sqrtl.c",
                 "upstream-freebsd/lib/msun/src/s_asinhl.c",
                 "upstream-freebsd/lib/msun/src/s_atanl.c",
                 "upstream-freebsd/lib/msun/src/s_cbrtl.c",
@@ -289,13 +286,10 @@ cc_library {
             ],
             armv7_a_neon: {
                 srcs: [
-                    "arm/sqrt.S",
                     "arm/floor.S",
                 ],
 
                 exclude_srcs: [
-                    "upstream-freebsd/lib/msun/src/e_sqrt.c",
-                    "upstream-freebsd/lib/msun/src/e_sqrtf.c",
                     "upstream-freebsd/lib/msun/src/s_floor.c",
                 ],
             },
@@ -312,12 +306,9 @@ cc_library {
                 "arm64/floor.S",
                 "arm64/lrint.S",
                 "arm64/rint.S",
-                "arm64/sqrt.S",
                 "arm64/trunc.S",
             ],
             exclude_srcs: [
-                "upstream-freebsd/lib/msun/src/e_sqrt.c",
-                "upstream-freebsd/lib/msun/src/e_sqrtf.c",
                 "upstream-freebsd/lib/msun/src/s_ceil.c",
                 "upstream-freebsd/lib/msun/src/s_ceilf.c",
                 "upstream-freebsd/lib/msun/src/s_fma.c",
@@ -349,8 +340,6 @@ cc_library {
         x86: {
             srcs: [
                 "i387/fenv.c",
-                "x86/sqrt.S",
-                "x86/sqrtf.S",
                 "x86/e_acos.S",
                 "x86/e_asin.S",
                 "x86/e_atan2.S",
@@ -386,8 +375,6 @@ cc_library {
                 "upstream-freebsd/lib/msun/src/e_log10.c",
                 "upstream-freebsd/lib/msun/src/e_pow.c",
                 "upstream-freebsd/lib/msun/src/e_sinh.c",
-                "upstream-freebsd/lib/msun/src/e_sqrt.c",
-                "upstream-freebsd/lib/msun/src/e_sqrtf.c",
                 "upstream-freebsd/lib/msun/src/s_atan.c",
                 "upstream-freebsd/lib/msun/src/s_cbrt.c",
                 "upstream-freebsd/lib/msun/src/s_cos.c",
@@ -429,8 +416,6 @@ cc_library {
         x86_64: {
             srcs: [
                 "amd64/fenv.c",
-                "x86_64/sqrt.S",
-                "x86_64/sqrtf.S",
                 "x86_64/e_acos.S",
                 "x86_64/e_asin.S",
                 "x86_64/e_atan2.S",
@@ -463,8 +448,6 @@ cc_library {
                 "upstream-freebsd/lib/msun/src/e_log10.c",
                 "upstream-freebsd/lib/msun/src/e_pow.c",
                 "upstream-freebsd/lib/msun/src/e_sinh.c",
-                "upstream-freebsd/lib/msun/src/e_sqrt.c",
-                "upstream-freebsd/lib/msun/src/e_sqrtf.c",
                 "upstream-freebsd/lib/msun/src/s_atan.c",
                 "upstream-freebsd/lib/msun/src/s_cbrt.c",
                 "upstream-freebsd/lib/msun/src/s_cos.c",
