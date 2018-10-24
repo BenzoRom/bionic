@@ -109,7 +109,7 @@
         // arch. The code generated is exactly the same.
         .arch armv7-a
 
-ENTRY(strcmp)
+ENTRY(strcmp_krait)
 	ldrb	r2, [src1]
 	ldrb	r3, [src2]
 	cmp	r2, #1
@@ -415,4 +415,4 @@ ENTRY(strcmp)
 	sub	result, result, data2, lsr #24
 	bx	lr
 
-END(strcmp)
+END(strcmp_krait)
