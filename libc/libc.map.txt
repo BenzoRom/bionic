@@ -1485,6 +1485,10 @@ LIBC_R {
     __mempcpy_chk;
     __open64_2;
     __openat64_2;
+    pthread_cond_clockwait;
+    pthread_mutex_clocklock;
+    pthread_rwlock_clockrdlock;
+    pthread_rwlock_clockwrlock;
 } LIBC_Q;
 
 LIBC_PRIVATE {
