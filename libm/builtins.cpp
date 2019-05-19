@@ -87,6 +87,13 @@ double trunc(double x) { return __builtin_trunc(x); }
 #endif
 
 #if defined (__aarch64__)
+long lrintf(float x) { return __builtin_lrintf(x); }
+long lrint(double x) { return __builtin_lrint(x); }
+long long llrintf(float x) { return lrintf(x); }
+long long llrint(double x) { return lrint(x); }
+#endif
+
+#if defined (__aarch64__)
 // msun s_nearbyint.c defines all floating-point version, so we need to
 // redefine the long double one here. For aarch64, clang/compiler-rt
 // soft-float routines does not use single/double floating-point operation,
