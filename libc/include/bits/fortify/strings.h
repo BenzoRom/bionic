@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 The Android Open Source Project
+ * Copyright (C) 2019 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,26 +26,36 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYS_STAT_H_
-#error "Never include this file directly; instead, include <sys/stat.h>"
-#endif
-
-mode_t __umask_chk(mode_t) __INTRODUCED_IN(18);
-mode_t __umask_real(mode_t mode) __RENAME(umask);
-
 #if defined(__BIONIC_FORTIFY)
 
-/* Abuse enable_if to make this an overload of umask. */
 __BIONIC_FORTIFY_INLINE
-mode_t umask(mode_t mode)
-    __overloadable
-    __enable_if(1, "")
-    __clang_error_if(mode & ~0777, "'umask' called with invalid mode") {
-#if __ANDROID_API__ >= __ANDROID_API_J_MR2__ && __BIONIC_FORTIFY_RUNTIME_CHECKS_ENABLED
-  return __umask_chk(mode);
-#else
-  return __umask_real(mode);
+void __bionic_bcopy(const void *src, void* const dst __pass_object_size0, size_t len)
+        __overloadable
+        __clang_error_if(__bos_unevaluated_lt(__bos0(dst), len),
+                         "'bcopy' called with size bigger than buffer") {
+#if __ANDROID_API__ >= __ANDROID_API_J_MR1__ && __BIONIC_FORTIFY_RUNTIME_CHECKS_ENABLED
+    size_t bos = __bos0(dst);
+    if (!__bos_trivially_ge(bos, len)) {
+        __builtin___memmove_chk(dst, src, len, bos);
+        return;
+    }
 #endif
+    __builtin_memmove(dst, src, len);
+}
+
+__BIONIC_FORTIFY_INLINE
+void __bionic_bzero(void* const b __pass_object_size0, size_t len)
+        __overloadable
+        __clang_error_if(__bos_unevaluated_lt(__bos0(b), len),
+                         "'bzero' called with size bigger than buffer") {
+#if __ANDROID_API__ >= __ANDROID_API_J_MR1__ && __BIONIC_FORTIFY_RUNTIME_CHECKS_ENABLED
+    size_t bos = __bos0(b);
+    if (!__bos_trivially_ge(bos, len)) {
+        __builtin___memset_chk(b, 0, len, bos);
+        return;
+    }
+#endif
+    __builtin_memset(b, 0, len);
 }
 
 #endif /* defined(__BIONIC_FORTIFY) */

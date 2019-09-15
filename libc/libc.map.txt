@@ -1480,6 +1480,13 @@ LIBC_Q { # introduced=Q
     android_mallopt; # apex
 } LIBC_P;
 
+LIBC_R {
+  global:
+    __mempcpy_chk;
+    __open64_2;
+    __openat64_2;
+} LIBC_Q;
+
 LIBC_PRIVATE {
   global:
     __accept4; # arm x86 mips
