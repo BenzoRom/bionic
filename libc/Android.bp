@@ -1599,6 +1599,8 @@ cc_library {
             static: {
                 srcs: [":libc_sources_static_arm"],
             },
+
+            whole_static_libs: [ "libgcc_stripped" ],
         },
         arm64: {
             version_script: ":libc.arm64.map",
