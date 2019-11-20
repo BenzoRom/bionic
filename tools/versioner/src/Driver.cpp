@@ -125,6 +125,7 @@ static void generateTargetCC1Flags(llvm::IntrusiveRefCntPtr<llvm::vfs::FileSyste
   cmd.push_back(arch_targets[type.arch]);
 
   cmd.push_back("-DANDROID");
+  cmd.push_back("-D__BIONIC_VERSIONER=1");
   cmd.push_back("-D__ANDROID_API__="s + std::to_string(type.api_level));
   // FIXME: Re-enable FORTIFY properly once our clang in external/ is new enough
   // to support diagnose_if without giving us syntax errors.
