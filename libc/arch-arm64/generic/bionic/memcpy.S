@@ -1,34 +1,8 @@
 /*
- * memcpy - copy memory area
+ * memcpy/memmove using SIMD registers
  *
- * Copyright (c) 2012-2020, Arm Limited.
+ * Copyright (c) 2019, Arm Limited.
  * SPDX-License-Identifier: MIT
- *
- * Copyright (C) 2008 The Android Open Source Project
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *  * Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *  * Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT
- * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
  */
 
 /* Assumptions:
@@ -65,11 +39,11 @@ END(__memcpy_chk)
 #define A_l	x6
 #define A_lw	w6
 #define A_h	x7
+#define A_hw	w7
 #define B_l	x8
 #define B_lw	w8
 #define B_h	x9
 #define C_l	x10
-#define C_lw	w10
 #define C_h	x11
 #define D_l	x12
 #define D_h	x13
@@ -83,17 +57,30 @@ END(__memcpy_chk)
 #define H_h	srcend
 #define tmp1	x14
 
-/* This implementation handles overlaps and supports both memcpy and memmove
-   from a single entry point.  It uses unaligned accesses and branchless
-   sequences to keep the code small, simple and improve performance.
+#define A_q	q0
+#define B_q	q1
+#define C_q	q2
+#define D_q	q3
+#define E_q	q4
+#define F_q	q5
+#define G_q	q6
+#define H_q	q7
 
-   Copies are split into 3 main cases: small copies of up to 32 bytes, medium
-   copies of up to 128 bytes, and large copies.  The overhead of the overlap
-   check is negligible since it is only required for large copies.
+/* This implementation of memcpy correctly handles overlaps, therefore
+   __memmove_aarch64_simd aliases to __memcpy_aarch64_simd. By moving the
+   src and dst buffer overlap check from the start of memmove code to the
+   beginning of large copy code, the overhead of combining memcpy
+   and memmove implementations is negligible.
 
-   Large copies use a software pipelined loop processing 64 bytes per iteration.
-   The destination pointer is 16-byte aligned to minimize unaligned accesses.
-   The loop tail is handled by always copying 64 bytes from the end.
+   Copies are split into 3 main cases: small copies of up to 16 bytes,
+   medium copies of 17..128 bytes which are fully unrolled, and large
+   copies (moves).
+
+   Large forward moves align the source and use an unrolled loop
+   processing 64 bytes per iteration.
+
+   Large backward moves align srcend and use an unrolled loop processing
+   64 bytes per iteration.
 */
 #if defined(WMEMMOVE)
 ENTRY(wmemmove)
@@ -105,183 +92,196 @@ ENTRY_ALIAS(memmove)
 
 	add	srcend, src, count
 	add	dstend, dstin, count
-	cmp     count, 128
-	b.hi    L(copy_long)
-	cmp	count, 32
-	b.hi	L(copy32_128)
-
-	/* Small copies: 0..32 bytes.  */
 	cmp	count, 16
-	b.lo	L(copy16)
-	ldp	A_l, A_h, [src]
-	ldp	D_l, D_h, [srcend, -16]
-	stp	A_l, A_h, [dstin]
-	stp	D_l, D_h, [dstend, -16]
+	b.ls	L(copy16_simd)
+	cmp	count, 128
+	b.hi	L(move_long_simd)
+
+	/* Medium copies: 17..128 bytes.  */
+	ldr	A_q, [src]
+	ldr	D_q, [srcend, -16]
+	cmp	count, 32
+	b.hi	L(copy33_128_simd)
+	str	A_q, [dstin]
+	str	D_q, [dstend, -16]
 	ret
 
-	/* Copy 8-15 bytes.  */
-L(copy16):
-	tbz	count, 3, L(copy8)
+	.p2align 4
+	/* Small copies: 0..16 bytes.  */
+L(copy16_simd):
+	/* 8-15 bytes.  */
+	cmp	count, 8
+	b.lo	1f
 	ldr	A_l, [src]
 	ldr	A_h, [srcend, -8]
 	str	A_l, [dstin]
 	str	A_h, [dstend, -8]
 	ret
 
-	.p2align 3
-	/* Copy 4-7 bytes.  */
-L(copy8):
-	tbz	count, 2, L(copy4)
+	.p2align 4
+1:
+	/* 4-7 bytes.  */
+	tbz	count, 2, 1f
 	ldr	A_lw, [src]
-	ldr	B_lw, [srcend, -4]
+	ldr	A_hw, [srcend, -4]
 	str	A_lw, [dstin]
-	str	B_lw, [dstend, -4]
-	ret
-
-	/* Copy 0..3 bytes using a branchless sequence.  */
-L(copy4):
-	cbz	count, L(copy0)
-	lsr	tmp1, count, 1
-	ldrb	A_lw, [src]
-	ldrb	C_lw, [srcend, -1]
-	ldrb	B_lw, [src, tmp1]
-	strb	A_lw, [dstin]
-	strb	B_lw, [dstin, tmp1]
-	strb	C_lw, [dstend, -1]
-L(copy0):
+	str	A_hw, [dstend, -4]
 	ret
 
 	.p2align 4
-	/* Medium copies: 33..128 bytes.  */
-L(copy32_128):
-	ldp     A_l, A_h, [src]
-	ldp     B_l, B_h, [src, 16]
-	ldp     C_l, C_h, [srcend, -32]
-	ldp     D_l, D_h, [srcend, -16]
-	cmp     count, 64
-	b.hi    L(copy128)
-	stp     A_l, A_h, [dstin]
-	stp     B_l, B_h, [dstin, 16]
-	stp     C_l, C_h, [dstend, -32]
-	stp     D_l, D_h, [dstend, -16]
+	/* Copy 0..3 bytes.  Use a branchless sequence that copies the same
+	   byte 3 times if count==1, or the 2nd byte twice if count==2.  */
+1:
+	cbz	count, 2f
+	lsr	tmp1, count, 1
+	ldrb	A_lw, [src]
+	ldrb	A_hw, [srcend, -1]
+	ldrb	B_lw, [src, tmp1]
+	strb	A_lw, [dstin]
+	strb	B_lw, [dstin, tmp1]
+	strb	A_hw, [dstend, -1]
+2:	ret
+
+	.p2align 4
+	/* Copy 33..128 bytes.  */
+L(copy33_128_simd):
+	ldr	B_q, [src, 16]
+	ldr	C_q, [srcend, -32]
+	cmp	count, 64
+	b.hi	L(copy65_128_simd)
+	str	A_q, [dstin]
+	str	D_q, [dstend, -16]
+	str	B_q, [dstin, 16]
+	str	C_q, [dstend, -32]
 	ret
 
 	.p2align 4
 	/* Copy 65..128 bytes.  */
-L(copy128):
-	ldp	E_l, E_h, [src, 32]
-	ldp	F_l, F_h, [src, 48]
-	cmp	count, 96
-	b.ls	L(copy96)
-	ldp	G_l, G_h, [srcend, -64]
-	ldp	H_l, H_h, [srcend, -48]
-	stp     G_l, G_h, [dstend, -64]
-	stp     H_l, H_h, [dstend, -48]
-L(copy96):
-	stp	A_l, A_h, [dstin]
-	stp     B_l, B_h, [dstin, 16]
-	stp     E_l, E_h, [dstin, 32]
-	stp     F_l, F_h, [dstin, 48]
-	stp     C_l, C_h, [dstend, -32]
-	stp	D_l, D_h, [dstend, -16]
+L(copy65_128_simd):
+	ldr	E_q, [src, 32]
+	ldr	F_q, [src, 48]
+	ldr	G_q, [srcend, -64]
+	ldr	H_q, [srcend, -48]
+	str	A_q, [dstin]
+	str	D_q, [dstend, -16]
+	str	B_q, [dstin, 16]
+	str	C_q, [dstend, -32]
+	str	E_q, [dstin, 32]
+	str	F_q, [dstin, 48]
+	str	G_q, [dstend, -64]
+	str	H_q, [dstend, -48]
 	ret
 
 	.p2align 4
-	/* Copy more than 128 bytes.  */
-L(copy_long):
-	/* Use backwards copy if there is an overlap.  */
-	sub	tmp1, dstin, src
-	cbz	tmp1, L(copy0)
+	/* Move more than 128 bytes.  */
+L(move_long_simd):
+	sub	tmp1, dstin, src	/* Overlap check.  */
+	cbz	tmp1, L(copy0_simd)
 	cmp	tmp1, count
-	b.lo	L(copy_long_backwards)
+	b.lo	L(move_long_backwards_simd)
 
-	/* Copy 16 bytes and then align dst to 16-byte alignment.  */
+	/* Align src to 16 byte alignment so that we don't cross cache line
+	   boundaries on both loads and stores.  There are at least 128 bytes
+	   to copy, so copy 16 bytes unaligned and then align.  The loop
+	   copies 64 bytes per iteration and prefetches one iteration ahead.  */
 
-	ldp	D_l, D_h, [src]
-	and	tmp1, dstin, 15
-	bic	dst, dstin, 15
-	sub	src, src, tmp1
+	ldr	D_q, [src]
+	and	tmp1, src, 15
+	bic	src, src, 15
+	sub	dst, dstin, tmp1
 	add	count, count, tmp1	/* Count is now 16 too large.  */
-	ldp	A_l, A_h, [src, 16]
-	stp	D_l, D_h, [dstin]
-	ldp	B_l, B_h, [src, 32]
-	ldp	C_l, C_h, [src, 48]
-	ldp	D_l, D_h, [src, 64]!
+	ldr	A_q, [src, 16]
+	str	D_q, [dstin]
+	ldr	B_q, [src, 32]
+	ldr	C_q, [src, 48]
+	ldr	D_q, [src, 64]!
 	subs	count, count, 128 + 16	/* Test and readjust count.  */
-	b.ls	L(copy64_from_end)
+	b.ls	L(copy64_from_end_simd)
 
-L(loop64):
-	stp	A_l, A_h, [dst, 16]
-	ldp	A_l, A_h, [src, 16]
-	stp	B_l, B_h, [dst, 32]
-	ldp	B_l, B_h, [src, 32]
-	stp	C_l, C_h, [dst, 48]
-	ldp	C_l, C_h, [src, 48]
-	stp	D_l, D_h, [dst, 64]!
-	ldp	D_l, D_h, [src, 64]!
+L(loop64_simd):
+	str	A_q, [dst, 16]
+	ldr	A_q, [src, 16]
+	str	B_q, [dst, 32]
+	ldr	B_q, [src, 32]
+	str	C_q, [dst, 48]
+	ldr	C_q, [src, 48]
+	str	D_q, [dst, 64]!
+	ldr	D_q, [src, 64]!
 	subs	count, count, 64
-	b.hi	L(loop64)
+	b.hi	L(loop64_simd)
 
-	/* Write the last iteration and copy 64 bytes from the end.  */
-L(copy64_from_end):
-	ldp	E_l, E_h, [srcend, -64]
-	stp	A_l, A_h, [dst, 16]
-	ldp	A_l, A_h, [srcend, -48]
-	stp	B_l, B_h, [dst, 32]
-	ldp	B_l, B_h, [srcend, -32]
-	stp	C_l, C_h, [dst, 48]
-	ldp	C_l, C_h, [srcend, -16]
-	stp	D_l, D_h, [dst, 64]
-	stp	E_l, E_h, [dstend, -64]
-	stp	A_l, A_h, [dstend, -48]
-	stp	B_l, B_h, [dstend, -32]
-	stp	C_l, C_h, [dstend, -16]
+	/* Write the last full set of 64 bytes.  The remainder is at most 64
+	   bytes, so it is safe to always copy 64 bytes from the end even if
+	   there is just 1 byte left.  */
+L(copy64_from_end_simd):
+	ldr	E_q, [srcend, -64]
+	str	A_q, [dst, 16]
+	ldr	A_q, [srcend, -48]
+	str	B_q, [dst, 32]
+	ldr	B_q, [srcend, -32]
+	str	C_q, [dst, 48]
+	ldr	C_q, [srcend, -16]
+	str	D_q, [dst, 64]
+	str	E_q, [dstend, -64]
+	str	A_q, [dstend, -48]
+	str	B_q, [dstend, -32]
+	str	C_q, [dstend, -16]
+
+L(copy0_simd):
 	ret
 
 	.p2align 4
 
-	/* Large backwards copy for overlapping copies.
-	   Copy 16 bytes and then align dst to 16-byte alignment.  */
-L(copy_long_backwards):
-	ldp	D_l, D_h, [srcend, -16]
-	and	tmp1, dstend, 15
+	/* Move more than 128 bytes where src and dst buffers overlap
+	   and dst > src.
+
+     Align srcend to 16 byte alignment so that we don't cross cache line
+	   boundaries on both loads and stores.  There are at least 128 bytes
+	   to copy, so copy 16 bytes unaligned and then align.  The loop
+	   copies 64 bytes per iteration and prefetches one iteration ahead.  */
+
+L(move_long_backwards_simd):
+	ldr	D_q, [srcend, -16]
+	and	tmp1, srcend, 15
 	sub	srcend, srcend, tmp1
 	sub	count, count, tmp1
-	ldp	A_l, A_h, [srcend, -16]
-	stp	D_l, D_h, [dstend, -16]
-	ldp	B_l, B_h, [srcend, -32]
-	ldp	C_l, C_h, [srcend, -48]
-	ldp	D_l, D_h, [srcend, -64]!
+	ldr	A_q, [srcend, -16]
+	str	D_q, [dstend, -16]
+	ldr	B_q, [srcend, -32]
+	ldr	C_q, [srcend, -48]
+	ldr	D_q, [srcend, -64]!
 	sub	dstend, dstend, tmp1
 	subs	count, count, 128
-	b.ls	L(copy64_from_start)
+	b.ls	L(copy64_from_start_simd)
 
-L(loop64_backwards):
-	stp	A_l, A_h, [dstend, -16]
-	ldp	A_l, A_h, [srcend, -16]
-	stp	B_l, B_h, [dstend, -32]
-	ldp	B_l, B_h, [srcend, -32]
-	stp	C_l, C_h, [dstend, -48]
-	ldp	C_l, C_h, [srcend, -48]
-	stp	D_l, D_h, [dstend, -64]!
-	ldp	D_l, D_h, [srcend, -64]!
+L(loop64_backwards_simd):
+	str	A_q, [dstend, -16]
+	ldr	A_q, [srcend, -16]
+	str	B_q, [dstend, -32]
+	ldr	B_q, [srcend, -32]
+	str	C_q, [dstend, -48]
+	ldr	C_q, [srcend, -48]
+	str	D_q, [dstend, -64]!
+	ldr	D_q, [srcend, -64]!
 	subs	count, count, 64
-	b.hi	L(loop64_backwards)
+	b.hi	L(loop64_backwards_simd)
 
-	/* Write the last iteration and copy 64 bytes from the start.  */
-L(copy64_from_start):
-	ldp	G_l, G_h, [src, 48]
-	stp	A_l, A_h, [dstend, -16]
-	ldp	A_l, A_h, [src, 32]
-	stp	B_l, B_h, [dstend, -32]
-	ldp	B_l, B_h, [src, 16]
-	stp	C_l, C_h, [dstend, -48]
-	ldp	C_l, C_h, [src]
-	stp	D_l, D_h, [dstend, -64]
-	stp	G_l, G_h, [dstin, 48]
-	stp	A_l, A_h, [dstin, 32]
-	stp	B_l, B_h, [dstin, 16]
-	stp	C_l, C_h, [dstin]
+	/* Write the last full set of 64 bytes.  The remainder is at most 64
+	   bytes, so it is safe to always copy 64 bytes from the start even if
+	   there is just 1 byte left.  */
+L(copy64_from_start_simd):
+	ldr	G_q, [src, 48]
+	str	A_q, [dstend, -16]
+	ldr	A_q, [src, 32]
+	str	B_q, [dstend, -32]
+	ldr	B_q, [src, 16]
+	str	C_q, [dstend, -48]
+	ldr	C_q, [src]
+	str	D_q, [dstend, -64]
+	str	G_q, [dstin, 48]
+	str	A_q, [dstin, 32]
+	str	B_q, [dstin, 16]
+	str	C_q, [dstin]
 	ret
 
 #if defined(WMEMMOVE)
