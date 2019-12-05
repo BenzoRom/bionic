@@ -249,8 +249,7 @@ void compileHeader(llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> vfs,
   auto diags = constructDiags();
   std::vector<const char*> cc1_flags = getCC1Command(type, filename);
   auto invocation = std::make_unique<CompilerInvocation>();
-  if (!CompilerInvocation::CreateFromArgs(*invocation.get(), &cc1_flags.front(),
-                                          &cc1_flags.front() + cc1_flags.size(), *diags)) {
+  if (!CompilerInvocation::CreateFromArgs(*invocation.get(), cc1_flags, *diags)) {
     errx(1, "failed to create CompilerInvocation");
   }
 
@@ -258,7 +257,7 @@ void compileHeader(llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> vfs,
 
   Compiler.setInvocation(std::move(invocation));
   Compiler.setDiagnostics(diags.get());
-  Compiler.setVirtualFileSystem(vfs);
+  Compiler.createFileManager(vfs);
 
   VersionerASTAction versioner_action(header_database, type);
   if (!Compiler.ExecuteAction(versioner_action)) {
