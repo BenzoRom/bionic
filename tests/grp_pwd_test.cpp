@@ -246,7 +246,7 @@ static void expect_ids(const T& ids) {
 
   // TODO(73062966): We still don't have a good way to create vendor AIDs in the system or other
   // non-vendor partitions, therefore we keep this check disabled.
-  if (android::base::GetIntProperty("ro.product.first_api_level", 0) <= __ANDROID_API_Q__) {
+  if (android::base::GetIntProperty("ro.product.first_api_level", 0) <= 29) {
     return;
   }
 

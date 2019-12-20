@@ -61,7 +61,7 @@ void* mmap(void* __addr, size_t __size, int __prot, int __flags, int __fd, off_t
 void* mmap(void* __addr, size_t __size, int __prot, int __flags, int __fd, off_t __offset);
 #endif
 
-#if __ANDROID_API__ >= __ANDROID_API_L__
+#if __ANDROID_API__ >= 21
 void* mmap64(void* __addr, size_t __size, int __prot, int __flags, int __fd, off64_t __offset) __INTRODUCED_IN(21);
 #endif
 
@@ -80,7 +80,7 @@ int mincore(void* __addr, size_t __size, unsigned char* __vector);
 
 int madvise(void* __addr, size_t __size, int __advice);
 
-#if __ANDROID_API__ >= __ANDROID_API_M__
+#if __ANDROID_API__ >= 23
 /*
  * Some third-party code uses the existence of POSIX_MADV_NORMAL to detect the
  * availability of posix_madvise. This is not correct, since having up-to-date
